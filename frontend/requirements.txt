@@ -1,0 +1,10 @@
+streamlit
+requests
+fastapi
+uvicorn
+sqlalchemy
+pymysql
+python-dotenv
+redis
+email-validator
+
