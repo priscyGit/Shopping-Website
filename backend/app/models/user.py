@@ -1,5 +1,7 @@
 from sqlalchemy import Column, Integer, String
 from app.db.database import Base
+from sqlalchemy.orm import relationship
+
 
 class User(Base):
     __tablename__ = "users"
@@ -13,3 +15,5 @@ class User(Base):
     city = Column(String(100))
     username = Column(String(100), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
+    favorites = relationship("Favorite", cascade="all, delete", back_populates="user")
+    orders = relationship("Order", cascade="all, delete", back_populates="user")

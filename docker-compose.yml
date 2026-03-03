@@ -10,12 +10,20 @@ services:
     ports:
       - "3310:3306"
     healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
       timeout: 5s
       retries: 20
+    networks:
+      - app-network
 
-
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
 
   backend:
     build: ./backend
@@ -33,17 +41,21 @@ services:
       MYSQL_DB: shopping_db
       MYSQL_HOST: db
       MYSQL_PORT: 3306
+    networks:
+      - app-network
 
   frontend:
     build: ./frontend
     container_name: frontend
+    volumes:
+      - ./frontend:/app
     ports:
       - "8501:8501"
     depends_on:
       - backend
+    networks:
+      - app-network
 
-  redis:
-    image: redis:7
-    container_name: redis
-    ports:
-      - "6379:6379"
+networks:
+  app-network:
+    driver: bridge

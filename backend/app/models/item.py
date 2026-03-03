@@ -1,6 +1,8 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Enum
 from datetime import datetime
 from app.db.database import Base
+from app.models.enums import ItemCategory
+
 
 class Item(Base):
     __tablename__ = "items"
@@ -9,9 +11,10 @@ class Item(Base):
     name = Column(String(255), nullable=False)
     description = Column(String(500))
     image_url = Column(String(500))
-    category = Column(String(100))
+    category = Column(Enum(ItemCategory), default=ItemCategory.OTHER)
     price = Column(Float, nullable=False)
     stock = Column(Integer, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_active = Column(Boolean, default=True)
 

@@ -1,6 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel,Field
 from datetime import datetime
-from app.models.order import OrderStatus
+
 
 
 class OrderItemCreate(BaseModel):
@@ -9,21 +9,20 @@ class OrderItemCreate(BaseModel):
 
 
 class OrderItemResponse(BaseModel):
-    id: int
-    item_id: int
+    name: str
+    price: float
     quantity: int
-    price_at_purchase: float
-
-    model_config = {"from_attributes": True}
-
 
 class OrderResponse(BaseModel):
     id: int
-    user_id: int
-    date: datetime
-    shipping_address: str | None
+    status: str
     total_price: float
-    status: OrderStatus
+    shipping_address: str | None
+    order_date: datetime
     items: list[OrderItemResponse]
 
-    model_config = {"from_attributes": True}
+class OrderItemUpdate(BaseModel):
+    item_id: int
+    quantity: int
+
+

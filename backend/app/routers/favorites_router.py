@@ -1,41 +1,45 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.schemas.favorite_schema import FavoriteCreate, FavoriteResponse
 from app.services.favorite_service import add_favorite, get_user_favorites, delete_favorite
+from app.utils.jwt_handler import get_current_user
 
 router = APIRouter(prefix="/favorites", tags=["Favorites"])
 
 @router.post("/", response_model=FavoriteResponse)
 def create_favorite(
     data: FavoriteCreate,
-    request: Request,
+    user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    if request.state.user_id is None:
-        raise HTTPException(status_code=401, detail="Login required")
-
-    return add_favorite(request.state.user_id, data.item_id, db)
+    favorite = add_favorite(user.id, data.item_id, db)
+    return {
+        "id": favorite.id,
+        "item_id": favorite.item_id
+    }
 
 @router.get("/", response_model=list[FavoriteResponse])
 def list_favorites(
-    request: Request,
+    user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    if request.state.user_id is None:
-        raise HTTPException(status_code=401, detail="Login required")
+    favorites = get_user_favorites(user.id, db)
+    return [
+        {
+            "id": fav.id,
+            "item_id": fav.item_id,
+            "name": fav.item.name,
+            "price": fav.item.price
+        }
+        for fav in favorites
+    ]
 
-    return get_user_favorites(request.state.user_id, db)
-
-@router.delete("/{favorite_id}")
-def remove_favorite(favorite_id: int, request: Request, db: Session = Depends(get_db)):
-    if request.state.user_id is None:
-        raise HTTPException(401, "Login required")
-
-    favorite = delete_favorite(favorite_id, request.state.user_id, db)
-    if not favorite:
-        raise HTTPException(404, "Favorite not found")
-
-    return {"detail": "Favorite removed"}
-
-
+@router.delete("/{favorite_id}", status_code=204)
+def remove_favorite(
+    favorite_id: int,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    delete_favorite(db, favorite_id, user.id)
+    return

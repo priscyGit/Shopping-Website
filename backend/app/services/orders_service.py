@@ -24,14 +24,14 @@ def create_temp_order(user_id: int, db: Session):
 
 
 def add_item_to_order(user_id: int, item_id: int, quantity: int, db: Session):
-    # 1) למצוא TEMP order
     order = get_temp_order(user_id, db)
 
-    # 2) אם אין — ליצור
     if not order:
         order = create_temp_order(user_id, db)
 
-    # 3) בדיקת מלאי
+    if order.status != OrderStatus.TEMP:
+        raise HTTPException(400, "Cannot modify closed order")
+
     item = db.query(Item).filter(Item.id == item_id).first()
     if not item:
         raise HTTPException(404, "Item not found")
@@ -39,7 +39,6 @@ def add_item_to_order(user_id: int, item_id: int, quantity: int, db: Session):
     if item.stock < quantity:
         raise HTTPException(400, "Not enough stock")
 
-    # 4) הוספת פריט להזמנה
     order_item = OrderItem(
         order_id=order.id,
         item_id=item_id,
@@ -48,7 +47,6 @@ def add_item_to_order(user_id: int, item_id: int, quantity: int, db: Session):
     )
     db.add(order_item)
 
-    # 5) עדכון מחיר כולל
     order.total_price += item.price * quantity
 
     db.commit()
@@ -56,41 +54,37 @@ def add_item_to_order(user_id: int, item_id: int, quantity: int, db: Session):
     return order
 
 
-def remove_item_from_order(user_id: int, item_id: int, db: Session):
-    order = db.query(Order).filter(
-        Order.user_id == user_id,
-        Order.status == OrderStatus.TEMP
-    ).first()
-
+def remove_item_from_order(user_id: int, item_id: int, quantity: int, db: Session):
+    order = get_temp_order(user_id, db)
     if not order:
         return None
 
-    order_item = db.query(OrderItem).filter(
-        OrderItem.order_id == order.id,
-        OrderItem.item_id == item_id
-    ).first()
-
+    order_item = next((oi for oi in order.items if oi.item_id == item_id), None)
     if not order_item:
-        return order
+        return None
 
-    db.delete(order_item)
-    db.commit()
+    # אם הכמות להסרה גדולה או שווה לכמות שיש – מוחקים את הפריט
+    if quantity >= order_item.quantity:
+        db.delete(order_item)
+    else:
+        order_item.quantity -= quantity
 
-    order.total_price = sum(oi.price_at_purchase * oi.quantity for oi in order.items)
     db.commit()
     db.refresh(order)
-
     return order
 
 
 
+
+
 def purchase_order(user_id: int, db: Session):
-    # 1) למצוא TEMP order
     order = get_temp_order(user_id, db)
     if not order:
         raise HTTPException(404, "No open order to purchase")
 
-    # 2) לעדכן מלאי
+    if order.status != OrderStatus.TEMP:
+        raise HTTPException(400, "Cannot modify a closed order")
+
     order_items = db.query(OrderItem).filter(OrderItem.order_id == order.id).all()
 
     for oi in order_items:
@@ -101,7 +95,6 @@ def purchase_order(user_id: int, db: Session):
 
         item.stock -= oi.quantity
 
-    # 3) לשנות סטטוס ל־CLOSE
     order.status = OrderStatus.CLOSE
 
     db.commit()
@@ -109,5 +102,13 @@ def purchase_order(user_id: int, db: Session):
     return order
 
 
+
 def get_user_orders(user_id: int, db: Session):
     return db.query(Order).filter(Order.user_id == user_id).all()
+
+
+
+
+
+
+

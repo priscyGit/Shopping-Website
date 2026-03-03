@@ -1,38 +1,52 @@
-from fastapi import HTTPException
-from passlib.hash import bcrypt
+from datetime import datetime, timedelta
+from jose import jwt
+from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from app.models.user import User
-from app.schemas.user_schema import UserLogin, UserCreate
-from app.utils.session_manager import create_session
+from app.config import JWT_SECRET, JWT_ALGORITHM
 
 
-def register_user(data: UserCreate, db: Session):
-    hashed_password = bcrypt.hash(data.password)
-    user = User(
-        first_name=data.first_name,
-        last_name=data.last_name,
-        email=data.email,
-        phone=data.phone,
-        country=data.country,
-        city=data.city,
-        username=data.username,
-        password_hash =hashed_password
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+SECRET_KEY = "SUPER_SECRET_KEY"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def verify_password(plain, hashed):
+    return pwd_context.verify(plain, hashed)
+
+
+def authenticate_user(db: Session, username: str, password: str):
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        return None
+    if not verify_password(password, user.password_hash):
+        return None
     return user
 
 
-def login_user(data: UserLogin, db: Session):
-    user = db.query(User).filter(User.username == data.username).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
 
-    if not bcrypt.verify(data.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Incorrect password")
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
-    token = create_session(user.id)
 
-    return token
-
+def register_user(user_data, db: Session):
+    hashed = pwd_context.hash(user_data.password)
+    new_user = User(
+        first_name=user_data.first_name,
+        last_name=user_data.last_name,
+        email=user_data.email,
+        phone=user_data.phone,
+        country=user_data.country,
+        city=user_data.city,
+        username=user_data.username,
+        password_hash=hashed
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user

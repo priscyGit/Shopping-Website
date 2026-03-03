@@ -1,5 +1,7 @@
 from sqlalchemy.orm import Session
 from app.models.favorite import Favorite
+from fastapi import HTTPException
+
 
 def add_favorite(user_id: int, item_id: int, db: Session):
     existing = db.query(Favorite).filter(
@@ -8,7 +10,7 @@ def add_favorite(user_id: int, item_id: int, db: Session):
     ).first()
 
     if existing:
-        return existing  # לא מוסיפים פעמיים
+        return existing
 
     favorite = Favorite(
         user_id=user_id,
@@ -24,17 +26,18 @@ def get_user_favorites(user_id: int, db: Session):
     return db.query(Favorite).filter(Favorite.user_id == user_id).all()
 
 
-def delete_favorite(favorite_id: int, user_id: int, db: Session):
+def delete_favorite(db: Session, favorite_id: int, user_id: int):
     favorite = db.query(Favorite).filter(
         Favorite.id == favorite_id,
         Favorite.user_id == user_id
     ).first()
 
     if not favorite:
-        return None
+        raise HTTPException(status_code=404, detail="Favorite not found")
 
     db.delete(favorite)
     db.commit()
-    return favorite
+    return {"message": "Favorite deleted successfully"}
+
 
 

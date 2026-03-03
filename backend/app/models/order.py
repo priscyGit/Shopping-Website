@@ -1,12 +1,8 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Enum
 from sqlalchemy.orm import relationship
 from datetime import datetime
-import enum
 from app.db.database import Base
-
-class OrderStatus(str, enum.Enum):
-    TEMP = "TEMP"
-    CLOSE = "CLOSE"
+from app.models.enums import OrderStatus
 
 class Order(Base):
     __tablename__ = "orders"
@@ -15,11 +11,13 @@ class Order(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     date = Column(DateTime, default=datetime.utcnow)
     shipping_address = Column(String(255))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    status = Column(Enum(OrderStatus), default=OrderStatus.TEMP)   # ← כאן השינוי
     total_price = Column(Float, default=0)
-    status = Column(Enum(OrderStatus), default=OrderStatus.TEMP)
 
-    user = relationship("User", backref="orders")
+    user = relationship("User", back_populates="orders")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete")
+
 
 class OrderItem(Base):
     __tablename__ = "order_items"
@@ -32,3 +30,11 @@ class OrderItem(Base):
 
     order = relationship("Order", back_populates="items")
     item = relationship("Item")
+
+
+
+
+
+
+
+

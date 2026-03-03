@@ -17,9 +17,12 @@ def list_items(db: Session = Depends(get_db)):
 @router.get("/{item_id}", response_model=ItemResponse)
 def get(item_id: int, db: Session = Depends(get_db)):
     item = get_item(item_id, db)
+
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
+
     return item
+
 
 @router.delete("/{item_id}")
 def delete(item_id: int, db: Session = Depends(get_db)):
@@ -27,4 +30,5 @@ def delete(item_id: int, db: Session = Depends(get_db)):
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     return {"message": "Item deleted"}
+
 
