@@ -17,6 +17,7 @@ user = get_current_user()
 token = get_token()
 
 
+
 st.subheader(f"{user['first_name']}'s Favorite Items")
 
 response = get_favorites(token)

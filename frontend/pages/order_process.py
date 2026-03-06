@@ -46,27 +46,29 @@ else:
 # REMOVE ITEM
 st.subheader("Remove Item From Order")
 
-# בחירת פריט להסרה
 selected_item = st.selectbox("Select item to remove", df["name"].tolist())
 
+row = df[df["name"] == selected_item].iloc[0]
+item_id = int(row["item_id"])
+max_quantity = int(row["quantity"])
+
+remove_qty = st.number_input(
+    "How many units to remove?",
+    min_value=1,
+    max_value=max_quantity,
+    value=1,
+    step=1
+)
+
 if st.button("Remove Item"):
-    # מציאת השורה המתאימה
-    row = df[df["name"] == selected_item].iloc[0]
-
-    item_id = row["item_id"]
-    current_quantity = row["quantity"]  # הכמות שיש כרגע
-
-    # שולחים לשרת את כל הכמות → השרת מוחק את הפריט
-    response = remove_item_from_order(item_id, current_quantity, token)
+    response = remove_item_from_order(item_id, remove_qty, token)
 
     if response.status_code == 200:
-        st.success(f"Removed {selected_item} from order!")
+        st.success(f"Removed {remove_qty} × {selected_item} from order!")
         st.rerun()
     else:
-        try:
-            st.error(response.json().get("detail", "Error removing item from order"))
-        except:
-            st.error(f"Server error: {response.text}")
+        st.error(response.json().get("detail", "Error removing item"))
+
 
 
 

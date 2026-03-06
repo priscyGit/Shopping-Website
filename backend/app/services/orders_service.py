@@ -39,19 +39,29 @@ def add_item_to_order(user_id: int, item_id: int, quantity: int, db: Session):
     if item.stock < quantity:
         raise HTTPException(400, "Not enough stock")
 
-    order_item = OrderItem(
-        order_id=order.id,
-        item_id=item_id,
-        quantity=quantity,
-        price_at_purchase=item.price
-    )
-    db.add(order_item)
+    existing = next((oi for oi in order.items if oi.item_id == item_id), None)
 
-    order.total_price += item.price * quantity
+    if existing:
+        existing.quantity += quantity
+    else:
+        order_item = OrderItem(
+            order_id=order.id,
+            item_id=item_id,
+            quantity=quantity,
+            price_at_purchase=item.price
+        )
+        db.add(order_item)
+
+    # 🔥 חישוב מחיר מחדש
+    order.total_price = sum(
+        oi.quantity * oi.price_at_purchase
+        for oi in order.items
+    )
 
     db.commit()
     db.refresh(order)
     return order
+
 
 
 def remove_item_from_order(user_id: int, item_id: int, quantity: int, db: Session):
@@ -63,11 +73,15 @@ def remove_item_from_order(user_id: int, item_id: int, quantity: int, db: Sessio
     if not order_item:
         return None
 
-    # אם הכמות להסרה גדולה או שווה לכמות שיש – מוחקים את הפריט
     if quantity >= order_item.quantity:
         db.delete(order_item)
     else:
         order_item.quantity -= quantity
+
+    order.total_price = sum(
+        oi.quantity * oi.price_at_purchase
+        for oi in order.items
+    )
 
     db.commit()
     db.refresh(order)

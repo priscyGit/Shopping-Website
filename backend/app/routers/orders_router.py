@@ -91,7 +91,7 @@ def get_all_users(db: Session = Depends(get_db)):
             "id": u.id,
             "username": u.username,
             "email": u.email,
-            "created_at": u.created_at
+
         }
         for u in users
     ]

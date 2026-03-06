@@ -2,26 +2,22 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.schemas.chat_schema import ChatRequest, ChatResponse
-from app.models.item import Item
+from app.utils.jwt_handler import get_current_user
+from app.services.chat_service import get_chat_response   # ← חשוב
 
 router = APIRouter(prefix="/chat", tags=["Chat Assistant"])
 
 @router.post("", response_model=ChatResponse)
-def chat(request: ChatRequest, db: Session = Depends(get_db)):
+def chat(
+    request: ChatRequest,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     try:
-        message = request.message.lower()
+        result = get_chat_response(user.id, request.message, db)
 
-        # חיפוש פריט לפי שם
-        item = db.query(Item).filter(Item.name.ilike(f"%{message}%")).first()
-
-        if item:
-            return ChatResponse(
-                response=f"There are {item.stock} units of {item.name} in stock."
-            )
-
-        # תשובה ברירת מחדל
         return ChatResponse(
-            response="I can answer questions about store items only."
+            response=result["response"]
         )
 
     except Exception as e:

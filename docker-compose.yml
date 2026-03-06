@@ -35,14 +35,14 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+    env_file:
+      - .env
     environment:
-      MYSQL_USER: root
-      MYSQL_PASSWORD: password
-      MYSQL_DB: shopping_db
-      MYSQL_HOST: db
-      MYSQL_PORT: 3306
+      FORWARD_HEADERS: true
     networks:
       - app-network
+
+
 
   frontend:
     build: ./frontend

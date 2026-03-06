@@ -16,8 +16,11 @@ def create_favorite(
     favorite = add_favorite(user.id, data.item_id, db)
     return {
         "id": favorite.id,
-        "item_id": favorite.item_id
+        "item_id": favorite.item_id,
+        "name": favorite.item.name,
+        "price": favorite.item.price
     }
+
 
 @router.get("/", response_model=list[FavoriteResponse])
 def list_favorites(
@@ -34,6 +37,7 @@ def list_favorites(
         }
         for fav in favorites
     ]
+
 
 @router.delete("/{favorite_id}", status_code=204)
 def remove_favorite(

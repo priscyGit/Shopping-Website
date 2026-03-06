@@ -72,8 +72,7 @@ with col1:
     if st.button("Add to Favorites"):
         item_id = item_map[selected_item]
         token = st.session_state.get("token")
-        response = add_to_order(item_id, quantity, token)
-
+        response = add_to_favorites(item_id, token)
 
         if response.status_code == 200:
             st.success("Item added to favorites!")
